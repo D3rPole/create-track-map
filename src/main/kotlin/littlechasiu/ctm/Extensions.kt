@@ -6,6 +6,12 @@ import com.simibubi.create.content.trains.entity.TravellingPoint
 import com.simibubi.create.content.trains.graph.TrackEdge
 import com.simibubi.create.content.trains.graph.TrackNode
 import com.simibubi.create.content.trains.graph.TrackNodeLocation
+import com.simibubi.create.content.trains.schedule.Schedule
+import com.simibubi.create.content.trains.schedule.ScheduleEntry
+import com.simibubi.create.content.trains.schedule.ScheduleRuntime
+import com.simibubi.create.content.trains.schedule.destination.ChangeThrottleInstruction
+import com.simibubi.create.content.trains.schedule.destination.ChangeTitleInstruction
+import com.simibubi.create.content.trains.schedule.destination.DestinationInstruction
 import com.simibubi.create.foundation.utility.Couple
 import littlechasiu.ctm.model.*
 import net.minecraft.resources.ResourceKey
@@ -75,6 +81,46 @@ val Carriage.sendable
       },
     )
 
+fun getInstructions(instructions: List<ScheduleEntry>): ArrayList<ScheduleInstruction> {
+  val result: ArrayList<ScheduleInstruction> = ArrayList()
+
+  for(entry in instructions){
+    if(entry.instruction is DestinationInstruction){
+      result.add(
+        ScheduleInstructionDestination(
+          stationName = (entry.instruction as DestinationInstruction).summary.second.string,
+        )
+      )
+    }
+    if(entry.instruction is ChangeTitleInstruction){
+      result.add(
+        ScheduleInstructionNameChange(
+          newName = (entry.instruction as ChangeTitleInstruction).scheduleTitle,
+        )
+      )
+    }
+    if(entry.instruction is ChangeThrottleInstruction){
+      result.add(
+        ScheduleInstructionThrottleChange(
+          throttle = (entry.instruction as ChangeThrottleInstruction).summary.second.string,
+        )
+      )
+    }
+
+  }
+  return result
+}
+
+val ScheduleRuntime.sendable
+  get() = schedule?.let {
+    CreateSchedule(
+            cycling = it.cyclic,
+            instructions = getInstructions(it.entries),
+            paused = paused,
+            currentEntry = currentEntry,
+    )
+  }
+
 val Train.sendable
   get() =
     CreateTrain(
@@ -82,6 +128,8 @@ val Train.sendable
       name = name.string,
       owner = null,
       cars = carriages.map { it.sendable }.toList(),
+      speed = speed,
       backwards = speed < 0,
       stopped = speed == 0.0,
+      schedule = runtime.sendable,
     )
