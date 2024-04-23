@@ -144,6 +144,7 @@ data class ScheduleInstructionNameChange(
 
 @Serializable
 data class CreateSchedule(
+  /*TODO store instructions as a queue => next instruction at first place*/
   val instructions: List<ScheduleInstruction>,
   val cycling: Boolean,
   val paused: Boolean,
