@@ -1,22 +1,26 @@
 package littlechasiu.ctm
 
 import com.simibubi.create.content.trains.entity.Carriage
+import com.simibubi.create.content.trains.entity.Navigation
 import com.simibubi.create.content.trains.entity.Train
 import com.simibubi.create.content.trains.entity.TravellingPoint
 import com.simibubi.create.content.trains.graph.TrackEdge
 import com.simibubi.create.content.trains.graph.TrackNode
 import com.simibubi.create.content.trains.graph.TrackNodeLocation
-import com.simibubi.create.content.trains.schedule.Schedule
 import com.simibubi.create.content.trains.schedule.ScheduleEntry
 import com.simibubi.create.content.trains.schedule.ScheduleRuntime
 import com.simibubi.create.content.trains.schedule.destination.ChangeThrottleInstruction
 import com.simibubi.create.content.trains.schedule.destination.ChangeTitleInstruction
 import com.simibubi.create.content.trains.schedule.destination.DestinationInstruction
+import com.simibubi.create.content.trains.station.GlobalStation
 import com.simibubi.create.foundation.utility.Couple
 import littlechasiu.ctm.model.*
+import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaField
 
 fun <T> MutableSet<T>.replaceWith(other: Collection<T>) {
   this.retainAll { other.contains(it) }
@@ -29,6 +33,10 @@ operator fun <T> Couple<T>.component2(): T = this.get(false)
 val Vec3.sendable: Point
   get() =
     Point(x = x, y = y, z = z)
+
+val Vec3i.sendable: Point
+  get() =
+    Point(x = x.toDouble(), y = y.toDouble(), z = z.toDouble())
 
 val ResourceKey<Level>.string: String
   get() {
@@ -121,6 +129,40 @@ val ScheduleRuntime.sendable
     )
   }
 
+private inline fun Navigation.getCurrentPath() : List<Couple<TrackNode>> {
+  return Navigation::class.java.getDeclaredField("currentPath").let{
+    it.isAccessible = true
+    val value = it.get(this)
+    @Suppress("UNCHECKED_CAST")
+    return@let value as List<Couple<TrackNode>>
+  }
+}
+
+fun getCurrentTrainPath(navigation: Navigation?) : List<Path>{
+  val result : ArrayList<Path> = ArrayList()
+  if(navigation == null){
+    return result
+  }
+  val field = Navigation::class.java.getDeclaredField("currentPath")
+  field.isAccessible = true
+  @Suppress("UNCHECKED_CAST")
+  val currentPath = field.get(navigation) as List<Couple<TrackNode>>
+
+  //val currentPath = navigation.getCurrentPath()
+  println("NAVIGATION:")
+  println(currentPath.size)
+
+  currentPath.forEach{
+    result.add(Path(
+            start = it.first.location.sendable,
+            end = it.second.location.sendable,
+            firstControlPoint = it.first.normal.sendable,
+            secondControlPoint = it.first.normal.sendable,
+    ))
+  }
+  return result
+}
+
 val Train.sendable
   get() =
     CreateTrain(
@@ -132,4 +174,5 @@ val Train.sendable
       backwards = speed < 0,
       stopped = speed == 0.0,
       schedule = runtime.sendable,
+      currentPath = getCurrentTrainPath(navigation),
     )
