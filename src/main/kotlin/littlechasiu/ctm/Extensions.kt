@@ -8,11 +8,7 @@ import com.simibubi.create.content.trains.graph.TrackEdge
 import com.simibubi.create.content.trains.graph.TrackGraph
 import com.simibubi.create.content.trains.graph.TrackNode
 import com.simibubi.create.content.trains.graph.TrackNodeLocation
-import com.simibubi.create.content.trains.schedule.Schedule
-import com.simibubi.create.content.trains.schedule.ScheduleEntry
 import com.simibubi.create.content.trains.schedule.ScheduleRuntime
-import com.simibubi.create.content.trains.schedule.condition.ScheduleWaitCondition
-import com.simibubi.create.content.trains.schedule.condition.ScheduledDelay
 import com.simibubi.create.content.trains.schedule.destination.ChangeThrottleInstruction
 import com.simibubi.create.content.trains.schedule.destination.ChangeTitleInstruction
 import com.simibubi.create.content.trains.schedule.destination.DestinationInstruction
@@ -147,6 +143,7 @@ private fun getNextEdge(graph: TrackGraph, trackNode: TrackNode, trackEdge: Trac
 }
 
 private fun pathFromTo(startEdge: TrackEdge, graph: TrackGraph, endNode: TrackNode) : ArrayList<Edge> {
+  //BEWARE! this method only goes straight this is not a pathfinder. It's used to get from last turn to the station
   val result = ArrayList<Edge>()
 
   var tEdge: TrackEdge = startEdge
@@ -183,10 +180,11 @@ private fun getEdgeFromStation(station: GlobalStation, graph: TrackGraph) : Trac
   return graph.getConnection(Couple.create(firstNode, secondNode))
 }
 
+
 private fun getCurrentTrainPath(navigation: Navigation?) : Path{
   val graph = navigation?.train?.graph
   val result : ArrayList<Edge> = ArrayList()
-  if(navigation == null || graph == null || navigation.destination == null){
+  if(!CreateTrain.enableNavigationTracks || navigation == null || graph == null || navigation.destination == null){
     return Path(result,0.0,0.0)
   }
   val field = Navigation::class.java.getDeclaredField("currentPath")
